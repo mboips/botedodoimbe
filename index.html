@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Boteco do Imbé</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+#rcpt{display:none}
+@media print{
+@page{margin:0}
+html,body{background:#fff!important;min-height:0}
+body>*:not(#rcpt){display:none!important}
+#rcpt{display:block;width:100%;max-width:72mm;margin:0 auto;padding:2mm;color:#000;font:12px/1.35 'Courier New',monospace}
+#rcpt h1{font:700 16px 'Courier New',monospace;text-align:center}
+#rcpt .c{text-align:center}
+#rcpt .l{display:flex;justify-content:space-between;gap:8px}
+#rcpt hr{border:0;border-top:1px dashed #000;margin:5px 0}
+#rcpt .t{font-weight:700;font-size:15px}
+}
 <style>
 :root{--bg:#0b0a09;--s1:#141210;--s2:#1c1916;--ln:#2d2822;--tx:#f1ebe1;--mu:#8f8678;--gd:#d9a441;--gd2:#f2cf85;--ok:#7bc08a;--bad:#e0705a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -266,7 +278,7 @@ function vCom(m){
 const op=S.orders.filter(o=>o.status==='open'),t0=range('hoje')[0],td=S.sales.filter(s=>s.date>=t0),cn=S.orders.filter(o=>o.status==='canceled'&&o.created>=t0).length;
 if(!op.find(o=>o.id===V.cur))V.cur=op[0]?op[0].id:null;
 const o=op.find(o=>o.id===V.cur);
-m.innerHTML=`<div class="hd"><div><h2 class="serif">Comandas</h2><p>Abra a comanda do cliente e anote cada pedido até o fechamento.</p></div><button class="btn" data-a="newOrder">Nova comanda</button></div>
+m.innerHTML=`<div class="hd"><div><h2 class="serif">Comandas</h2><p>Abra a comanda do cliente e anote cada pedido até o fechamento.</p></div><div style="display:flex;gap:8px"><button class="btn ghost" data-a="prn">Impressora</button><button class="btn" data-a="newOrder">Nova comanda</button></div></div>
 <div class="kp stats"><div class="pan"><b>${op.length}</b><span>Comandas abertas</span></div><div class="pan"><b>${td.length}</b><span>Fechadas hoje</span></div><div class="pan"><b>${cn}</b><span>Canceladas hoje</span></div><div class="pan"><b>${R(op.reduce((t,x)=>t+tot(x),0))}</b><span>Em aberto agora</span></div><div class="pan"><b>${R(sum(td))}</b><span>Faturado hoje</span></div></div>
 <div><p class="sec">Em atendimento</p><div class="cg">${op.map((x,i)=>`<button class="oc ${x.id===V.cur?'on':''}" style="animation-delay:${i*50}ms" data-a="pick" data-id="${x.id}"><div class="av">${esc(x.name.charAt(0).toUpperCase())}</div><div class="ot"><b>${esc(x.name)}</b><span>${x.table?'Mesa '+esc(x.table):'Balcão'} · há ${ago(x.created)}</span></div><div class="oq"><span>${nIt(x)} itens</span><b>${R(tot(x))}</b></div></button>`).join('')||'<div class="emp" style="grid-column:1/-1">Nenhuma comanda aberta. Toque em Nova comanda.</div>'}</div></div>
 ${td.length?`<div><p class="sec">Fechadas hoje</p><div class="fh">${td.slice().sort((a,b)=>b.date-a.date).slice(0,15).map(s=>`<div><b>${esc(s.name)}</b>${R(s.total)} · ${s.pay}</div>`).join('')}</div></div>`:''}
@@ -326,11 +338,11 @@ else if(a==='mc')closeM();
 else if(a==='saveOrder'){const n=$('#on').value.trim();if(!n){$('#on').focus();return}const x={id:uid(),name:n,table:$('#ot').value.trim(),items:[],status:'open',created:Date.now()};S.orders.push(x);V.cur=x.id;push('orders',[x]);closeM();render(true)}
 else if(a==='cancel'&&o){if(confirm('Cancelar esta comanda?')){o.status='canceled';push('orders',[o]);render()}}
 else if(a==='close'&&o)modal(`<h3 class="serif">Fechar comanda</h3><p style="color:var(--mu);margin-bottom:14px">${esc(o.name)} · ${o.items.reduce((t,i)=>t+i.qty,0)} itens</p><div class="tot" style="margin-top:0"><span style="color:var(--mu)">Total</span><b>${R(tot(o))}</b></div><div class="fld"><label>Forma de pagamento</label><select class="inp" id="pp"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="row"><button class="btn ghost" data-a="mc">Voltar</button><button class="btn" data-a="pay">Confirmar</button></div>`);
-else if(a==='pay'&&o){const sl={id:uid(),name:o.name,table:o.table,items:o.items,total:tot(o),pay:$('#pp').value,date:Date.now()};S.sales.push(sl);o.status='closed';push('sales',[sl]);push('orders',[o]);closeM();render(true)}
+else if(a==='pay'&&o){const sl={id:uid(),name:o.name,table:o.table,items:o.items,total:tot(o),pay:$('#pp').value,date:Date.now()};S.sales.push(sl);o.status='closed';push('sales',[sl]);push('orders',[o]);closeM();render(true);printSale(sl)}
 else if(a==='newProd')modal(`<h3 class="serif">Novo produto</h3><div class="fld"><label>Nome</label><input class="inp" id="pn"></div><div class="row"><div class="fld"><label>Categoria</label><select class="inp" id="pc">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div class="fld"><label>Preço (R$)</label><input class="inp" id="pr" type="number" step="0.01" min="0"></div></div><div class="row"><button class="btn ghost" data-a="mc">Voltar</button><button class="btn" data-a="saveProd">Salvar</button></div>`);
 else if(a==='saveProd'){const n=$('#pn').value.trim(),p=parseFloat($('#pr').value);if(!n||!(p>=0)){$('#pn').focus();return}const np={id:uid(),name:n,cat:$('#pc').value,price:p};S.products.push(np);push('products',[np]);closeM();render()}
 else if(a==='delProd'){if(confirm('Excluir este produto?')){S.products=S.products.filter(p=>p.id!==id);del('products','id=eq.'+id);render()}}
-else if(a==='sale'){const s=S.sales.find(x=>x.id===id);modal(`<h3 class="serif">${esc(s.name)}</h3><p style="color:var(--mu)">${fd(s.date)} · ${s.table?'Mesa '+esc(s.table)+' · ':''}${s.pay}</p>${s.items.map(i=>`<div class="li" style="grid-template-columns:1fr auto"><div><b>${i.qty}x ${esc(i.name)}</b></div><b>${R(i.qty*i.price)}</b></div>`).join('')}<div class="tot"><span style="color:var(--mu)">Total</span><b>${R(s.total)}</b></div><button class="btn ghost full" data-a="mc">Fechar</button>`)}
+else if(a==='sale'){const s=S.sales.find(x=>x.id===id);modal(`<h3 class="serif">${esc(s.name)}</h3><p style="color:var(--mu)">${fd(s.date)} · ${s.table?'Mesa '+esc(s.table)+' · ':''}${s.pay}</p>${s.items.map(i=>`<div class="li" style="grid-template-columns:1fr auto"><div><b>${i.qty}x ${esc(i.name)}</b></div><b>${R(i.qty*i.price)}</b></div>`).join('')}<div class="tot"><span style="color:var(--mu)">Total</span><b>${R(s.total)}</b></div><div class="row"><button class="btn" data-a="reprint" data-id="${s.id}">Reimprimir</button><button class="btn ghost" data-a="mc">Fechar</button></div>`)}
 else if(a==='demo'){if(!confirm('Adicionar 120 vendas fictícias dos últimos 30 dias?'))return;const w=S.products.map((p,i)=>Math.pow(.82,i%9)+.1);
 const n0=S.sales.length;for(let k=0;k<120;k++){const d=new Date(Date.now()-Math.random()*30*864e5);d.setHours(18+Math.floor(Math.random()*8)%24,Math.floor(Math.random()*60));const its=[],c=1+Math.floor(Math.random()*4);
 for(let j=0;j<c;j++){let r=Math.random()*w.reduce((a,b)=>a+b,0),ix=0;while(r>w[ix]&&ix<w.length-1){r-=w[ix];ix++}const p=S.products[ix],f=its.find(x=>x.pid===p.id);const q=1+Math.floor(Math.random()*3);f?f.qty+=q:its.push({pid:p.id,name:p.name,price:p.price,qty:q})}
@@ -357,6 +369,85 @@ function countUp(){document.querySelectorAll('.kp b').forEach(b=>{const t=b.text
 const s=performance.now();(function k(n){const p=Math.min(1,(n-s)/700);b.textContent=f(v*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(k)})(s)})}
 document.querySelectorAll('[data-logo]').forEach(x=>x.setAttribute(x.tagName.toLowerCase()==='img'?'src':'href',LOGO));
 (function(){const sv=document.querySelector('.hero svg.bg');for(let i=0;i<22;i++){const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',Math.random()*800);c.setAttribute('cy',800);c.setAttribute('r',1+Math.random()*2.6);c.setAttribute('class','bub');c.style.setProperty('--t',(9+Math.random()*9)+'s');c.style.animationDelay=(-Math.random()*14)+'s';sv.appendChild(c)}})();
+/* ===== Impressora ===== */
+const PRN={mode:null,dev:null,ch:null,ep:null,w:32};
+const enc=new TextEncoder();
+const plain=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,'?');
+const money=v=>(+v).toFixed(2).replace('.',',');
+const pad=(l,r)=>{l=plain(l);r=plain(r);const n=PRN.w-l.length-r.length;return n>0?l+' '.repeat(n)+r:l.slice(0,Math.max(0,PRN.w-r.length-1))+' '+r};
+const BTS=['000018f0-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2','49535343-fe7d-4ae5-8fa9-9fafd205e455','0000ffe0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb'];
+function savePrn(){try{localStorage.setItem('imbe_prn',JSON.stringify({mode:PRN.mode,w:PRN.w}))}catch(e){}}
+const prnTxt=()=>({bt:'Bluetooth: '+(PRN.dev&&PRN.dev.name||''),usb:'USB conectada',browser:'Impressão do navegador'}[PRN.mode]||'Nenhuma impressora configurada');
+
+function escpos(s){
+const B=[],txt=t=>B.push(...enc.encode(plain(t)+'\n')),ln=()=>txt('-'.repeat(PRN.w));
+B.push(0x1B,0x40,0x1B,0x61,1,0x1B,0x45,1,0x1D,0x21,0x01);txt('BOTECO DO IMBE');
+B.push(0x1D,0x21,0x00,0x1B,0x45,0x00);txt('Adega & Lounge');txt(new Date(s.date).toLocaleString('pt-BR'));
+B.push(0x1B,0x61,0);ln();
+txt('Cliente: '+s.name);if(s.table)txt('Mesa: '+s.table);ln();
+s.items.forEach(i=>{txt(i.name);txt(pad(i.qty+' x '+money(i.price),money(i.qty*i.price)))});
+ln();B.push(0x1B,0x45,1,0x1D,0x21,0x01);txt(pad('TOTAL','R$ '+money(s.total)));B.push(0x1D,0x21,0x00,0x1B,0x45,0x00);
+txt('Pagamento: '+s.pay);
+B.push(0x1B,0x61,1);txt('');txt('Obrigado e volte sempre!');B.push(0x1B,0x64,4);
+return B}
+
+function browserPrint(s){
+let r=$('#rcpt');if(!r){r=document.createElement('div');r.id='rcpt';document.body.appendChild(r)}
+r.innerHTML=`<h1>BOTECO DO IMBÉ</h1><div class="c">Adega &amp; Lounge<br>${new Date(s.date).toLocaleString('pt-BR')}</div><hr><div>Cliente: ${esc(s.name)}</div>${s.table?`<div>Mesa: ${esc(s.table)}</div>`:''}<hr>${s.items.map(i=>`<div>${esc(i.name)}</div><div class="l"><span>${i.qty} x ${money(i.price)}</span><span>${money(i.qty*i.price)}</span></div>`).join('')}<hr><div class="l t"><span>TOTAL</span><span>R$ ${money(s.total)}</span></div><div>Pagamento: ${esc(s.pay)}</div><hr><div class="c">Obrigado e volte sempre!</div>`;
+setTimeout(()=>window.print(),80)}
+
+async function btChar(d){
+const srv=await d.gatt.connect();
+for(const sv of await srv.getPrimaryServices())for(const c of await sv.getCharacteristics())
+ if(c.properties.write||c.properties.writeWithoutResponse)return c;
+throw new Error('Esta impressora não aceita escrita por Bluetooth BLE.')}
+
+async function usbOpen(d){
+await d.open();if(!d.configuration)await d.selectConfiguration(1);
+let pick=null;
+for(const i of d.configuration.interfaces)for(const a of i.alternates)for(const ep of a.endpoints)
+ if(ep.direction==='out'&&(!pick||(a.interfaceClass===7&&pick.cls!==7)))pick={n:i.interfaceNumber,e:ep.endpointNumber,cls:a.interfaceClass};
+if(!pick)throw new Error('Saída USB não encontrada.');
+await d.claimInterface(pick.n);PRN.dev=d;PRN.ep=pick.e;PRN.mode='usb'}
+
+async function send(bytes){
+const u=new Uint8Array(bytes);
+if(PRN.mode==='usb'){await PRN.dev.transferOut(PRN.ep,u);return}
+if(!PRN.dev.gatt.connected)PRN.ch=await btChar(PRN.dev);
+for(let i=0;i<u.length;i+=100){const p=u.slice(i,i+100);
+ PRN.ch.properties.writeWithoutResponse?await PRN.ch.writeValueWithoutResponse(p):await PRN.ch.writeValue(p);
+ await new Promise(r=>setTimeout(r,25))}}
+
+async function printSale(s){
+try{
+ if(PRN.mode==='bt'||PRN.mode==='usb')await send(escpos(s));
+ else if(PRN.mode==='browser')browserPrint(s);
+}catch(e){alert('Não consegui imprimir direto na impressora ('+(e.message||e)+'). Vou usar a impressão do navegador.');browserPrint(s)}}
+
+function prnModal(){modal(`<h3 class="serif">Impressora</h3><p style="color:var(--mu);margin-bottom:14px">${prnTxt()}</p>
+<div style="display:grid;gap:10px"><button class="btn" data-a="prnBT">Conectar por Bluetooth</button><button class="btn" data-a="prnUSB">Conectar por USB</button><button class="btn ghost" data-a="prnBR">Usar impressão do navegador</button></div>
+<div class="fld" style="margin-top:16px"><label>Largura do papel</label><select class="inp" onchange="PRN.w=+this.value;savePrn()"><option value="32" ${PRN.w===32?'selected':''}>58 mm</option><option value="48" ${PRN.w===48?'selected':''}>80 mm</option></select></div>
+<div class="row"><button class="btn ghost" data-a="mc">Fechar</button><button class="btn" data-a="prnTest">Imprimir teste</button></div>`)}
+
+document.addEventListener('click',async e=>{
+const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+try{
+ if(a==='prn')prnModal();
+ else if(a==='prnBT'){
+  if(!navigator.bluetooth)throw new Error('Este navegador não tem Bluetooth web. Use o Chrome no Android ou no computador.');
+  const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BTS});
+  PRN.ch=await btChar(d);PRN.dev=d;PRN.mode='bt';savePrn();prnModal()}
+ else if(a==='prnUSB'){
+  if(!navigator.usb)throw new Error('Este navegador não tem USB web. Use o Chrome no Android ou no computador.');
+  await usbOpen(await navigator.usb.requestDevice({filters:[]}));savePrn();prnModal()}
+ else if(a==='prnBR'){PRN.mode='browser';savePrn();prnModal()}
+ else if(a==='prnTest')await printSale({name:'TESTE',table:'1',items:[{name:'Item de teste',qty:2,price:5}],total:10,pay:'Pix',date:Date.now()});
+ else if(a==='reprint')await printSale(S.sales.find(x=>x.id===b.dataset.id));
+}catch(err){if(err.name!=='NotFoundError')alert('Impressora: '+(err.message||err))}});
+
+try{const c=JSON.parse(localStorage.getItem('imbe_prn'));if(c){PRN.w=c.w||32;
+ if(c.mode==='browser')PRN.mode='browser';
+ if(c.mode==='usb'&&navigator.usb)navigator.usb.getDevices().then(l=>l[0]&&usbOpen(l[0])).catch(()=>{})}}catch(e){}
 try{if(sessionStorage.getItem('imbe_ok')==='1')enter()}catch(e){}
 </script>
 </body>
